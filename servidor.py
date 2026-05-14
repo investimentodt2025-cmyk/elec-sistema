@@ -8,7 +8,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 
 BASE = os.path.dirname(os.path.abspath(__file__))
-app  = Flask(__name__)
+app  = Flask(__name__, static_folder=BASE, static_url_path="")
 CORS(app)
 
 DATA_DIR = Path(os.environ.get("DATA_DIR", "/data"))
@@ -43,30 +43,16 @@ def enviar_telegram(msg):
 # ── PÁGINAS ───────────────────────────────────
 @app.route("/")
 def index():
-    try:
-        path = os.path.join(BASE, "index.html")
-        with open(path, "r", encoding="utf-8") as f:
-            return f.read(), 200, {"Content-Type": "text/html; charset=utf-8"}
-    except Exception as e:
-        return f"Erro ao abrir index.html: {e} | BASE={BASE}", 500
+    return app.send_static_file("index.html")
 
 @app.route("/tecnico")
 def tecnico():
-    try:
-        path = os.path.join(BASE, "tecnico.html")
-        with open(path, "r", encoding="utf-8") as f:
-            return f.read(), 200, {"Content-Type": "text/html; charset=utf-8"}
-    except Exception as e:
-        return f"Erro ao abrir tecnico.html: {e} | BASE={BASE}", 500
+    return app.send_static_file("tecnico.html")
 
-# ── DEBUG ─────────────────────────────────────
 @app.route("/debug")
 def debug():
-    try:
-        files = os.listdir(BASE)
-        return jsonify({"BASE": BASE, "files": sorted(files)})
-    except Exception as e:
-        return jsonify({"erro": str(e)}), 500
+    files = os.listdir(BASE)
+    return jsonify({"BASE": BASE, "files": sorted(files), "ok": True})
 
 # ── API REGISTRAR ─────────────────────────────
 @app.route("/api/registrar", methods=["POST"])
@@ -94,7 +80,6 @@ def registrar():
         }
         registros.append(registro)
         salvar(REGISTROS_FILE, registros)
-        print(f"  [+] {registro['portal']} | {tipo_raw} | {registro['funcionario']} | {registro['cliente']}")
         status  = registro["status"]
         emoji   = "✅" if status == "ACEITO" else "❌"
         cliente = registro.get("cliente","") or "—"
@@ -124,7 +109,6 @@ def salvar_notro():
 def salvar_juvo():
     return registrar()
 
-# ── LISTAR ────────────────────────────────────
 @app.route("/listar")
 def listar_route():
     try:
@@ -149,7 +133,6 @@ def listar_route():
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
 
-# ── APP TÉCNICO ───────────────────────────────
 @app.route("/api/os_tecnico")
 def os_tecnico():
     try:
@@ -184,12 +167,10 @@ def os_tecnico():
 def atualizar_os():
     try:
         d = request.get_json()
-        print(f"  [OS] {d.get('id')} → {d.get('status')}")
         return jsonify({"ok": True})
     except Exception as e:
         return jsonify({"ok": False, "erro": str(e)}), 500
 
-# ── LAUDO ─────────────────────────────────────
 @app.route("/api/laudo", methods=["POST"])
 def salvar_laudo():
     try:
@@ -211,7 +192,6 @@ def salvar_laudo():
 def listar_laudos():
     return jsonify({"ok": True, "laudos": ler(LAUDOS_FILE)})
 
-# ── PEÇAS ─────────────────────────────────────
 @app.route("/api/pecas", methods=["GET"])
 def listar_pecas():
     return jsonify({"ok": True, "pecas": ler(PECAS_FILE)})
@@ -246,12 +226,10 @@ def remover_peca(pid):
     except Exception as e:
         return jsonify({"ok": False, "erro": str(e)}), 500
 
-# ── STATUS ────────────────────────────────────
 @app.route("/api/status")
 def status():
     return jsonify({"ok": True, "registros": len(ler(REGISTROS_FILE))})
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    print(f"⚡ SISTEMA ELEC — Cloud — porta {port}")
     app.run(host="0.0.0.0", port=port, debug=False)
