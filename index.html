@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ELEC — Sistema de Gestão</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f0f13;
+  --surface: #17171d;
+  --card: #1e1e26;
+  --border: rgba(255,255,255,0.07);
+  --text: #f0f0f5;
+  --muted: #6b6b80;
+  --azul: #4d9fff;
+  --verde: #3ddc84;
+  --amarelo: #ffb84d;
+  --roxo: #a06bff;
+  --vermelho: #ff5c5c;
+  --notro: #4d9fff;
+  --juvo: #3ddc84;
+  --aciona: #a06bff;
+  --mondial: #ffb84d;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:'Space Grotesk',sans-serif; min-height:100vh; padding:20px; }
+
+.topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; }
+.topbar h1 { font-size:18px; font-weight:600; }
+.status-pill { display:flex; align-items:center; gap:8px; background:var(--card); border:1px solid var(--border); border-radius:100px; padding:8px 16px; font-size:12px; color:var(--verde); }
+.status-dot { width:7px; height:7px; border-radius:50%; background:var(--verde); box-shadow:0 0 8px var(--verde); animation:pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+.metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
+.metric { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px; }
+.metric-label { font-size:12px; color:var(--muted); margin-bottom:8px; }
+.metric-value { font-size:32px; font-weight:700; line-height:1; }
+.metric-value.azul { color:var(--azul); }
+.metric-value.verde { color:var(--verde); }
+.metric-value.amarelo { color:var(--amarelo); }
+.metric-value.roxo { color:var(--roxo); }
+
+.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px; }
+
+.panel { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px; }
+.panel-title { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:16px; font-family:'Space Mono',monospace; }
+
+/* OS LIST */
+.os-item { display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--border); }
+.os-item:last-child { border-bottom:none; }
+.os-icon { width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+.os-icon.eletrica { background:rgba(77,159,255,0.15); }
+.os-icon.branca    { background:rgba(61,220,132,0.15); }
+.os-icon.encanador { background:rgba(160,107,255,0.15); }
+.os-info { flex:1; min-width:0; }
+.os-tipo { font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.os-sub { font-size:11px; color:var(--muted); margin-top:2px; font-family:'Space Mono',monospace; }
+.os-badge { font-size:10px; font-weight:700; padding:4px 10px; border-radius:20px; white-space:nowrap; flex-shrink:0; }
+.badge-aceito      { background:rgba(77,159,255,0.15); color:var(--azul); }
+.badge-andamento   { background:rgba(255,184,77,0.15); color:var(--amarelo); }
+.badge-concluido   { background:rgba(61,220,132,0.15); color:var(--verde); }
+.badge-recusado    { background:rgba(255,92,92,0.15); color:var(--vermelho); }
+
+/* TÉCNICOS */
+.tec-item { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--border); }
+.tec-item:last-child { border-bottom:none; }
+.tec-avatar { width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; flex-shrink:0; }
+.av-c { background:rgba(77,159,255,0.2); color:var(--azul); }
+.av-l { background:rgba(160,107,255,0.2); color:var(--roxo); }
+.tec-info { flex:1; }
+.tec-nome { font-size:14px; font-weight:600; }
+.tec-tipo { font-size:11px; color:var(--muted); margin-top:1px; }
+.tec-os { font-size:20px; font-weight:700; color:var(--azul); }
+.tec-os-label { font-size:9px; color:var(--muted); font-family:'Space Mono',monospace; text-align:right; }
+
+/* PORTAIS */
+.portal-row { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--border); }
+.portal-row:last-child { border-bottom:none; }
+.portal-nome { font-size:13px; font-weight:500; width:90px; flex-shrink:0; }
+.portal-bar-wrap { flex:1; height:5px; background:var(--border); border-radius:3px; overflow:hidden; }
+.portal-bar { height:100%; border-radius:3px; transition:width .6s; }
+.portal-count { font-size:13px; font-weight:700; font-family:'Space Mono',monospace; min-width:20px; text-align:right; }
+
+/* BOTTOM BUTTONS */
+.bottom-btns { display:flex; gap:10px; }
+.btt { flex:1; padding:13px; background:var(--card); border:1px solid var(--border); border-radius:12px; color:var(--text); font-family:'Space Grotesk',sans-serif; font-size:13px; font-weight:600; cursor:pointer; transition:background .2s; }
+.btt:hover { background:#2a2a35; }
+.btt.primary { background:var(--azul); color:#000; border-color:var(--azul); }
+.btt.primary:hover { background:#6db3ff; }
+
+/* TABS */
+.tabs { display:flex; gap:4px; margin-bottom:20px; }
+.tab { padding:8px 16px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; color:var(--muted); border:1px solid transparent; }
+.tab.ativa { background:var(--card); color:var(--text); border-color:var(--border); }
+
+.empty { text-align:center; padding:30px; color:var(--muted); font-size:13px; }
+
+/* MODAL */
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:100; display:none; align-items:center; justify-content:center; }
+.modal-overlay.aberto { display:flex; }
+.modal { background:var(--card); border:1px solid var(--border); border-radius:18px; padding:28px; width:100%; max-width:440px; }
+.modal h2 { font-size:18px; margin-bottom:16px; }
+.campo { margin-bottom:14px; }
+.campo label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; display:block; margin-bottom:6px; }
+.campo input, .campo select { width:100%; padding:11px 14px; background:var(--surface); border:1px solid var(--border); border-radius:10px; color:var(--text); font-family:'Space Grotesk',sans-serif; font-size:14px; outline:none; }
+.campo input:focus, .campo select:focus { border-color:var(--azul); }
+.modal-btns { display:flex; gap:10px; margin-top:20px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>ELEC Empreendimentos — Sistema de Gestão</h1>
+  <div class="status-pill">
+    <div class="status-dot"></div>
+    <span>Agente monitorando portais</span>
+    <span style="color:var(--muted);font-family:'Space Mono',monospace" id="hora-top">--:--</span>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab ativa" onclick="mostrarAba('hoje')">📊 Hoje</div>
+  <div class="tab" onclick="mostrarAba('historico')">📋 Ordens de Serviço</div>
+  <div class="tab" onclick="mostrarAba('tecnicos')">👷 Técnicos</div>
+  <div class="tab" onclick="mostrarAba('pecas')">🔩 Estoque de Peças</div>
+</div>
+
+<!-- ABA HOJE -->
+<div id="aba-hoje">
+  <div class="metrics">
+    <div class="metric">
+      <div class="metric-label">Serviços hoje</div>
+      <div class="metric-value azul" id="m-hoje">0</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">OS aceitas</div>
+      <div class="metric-value verde" id="m-aceitas">0</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Em andamento</div>
+      <div class="metric-value amarelo" id="m-andamento">0</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Recusadas</div>
+      <div class="metric-value" style="color:var(--vermelho)" id="m-recusadas">0</div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="panel">
+      <div class="panel-title">Ordens de Serviço — Hoje</div>
+      <div id="lista-os"><div class="empty">Carregando...</div></div>
+    </div>
+    <div>
+      <div class="panel" style="margin-bottom:12px">
+        <div class="panel-title">Técnicos</div>
+        <div class="tec-item">
+          <div class="tec-avatar av-c">CA</div>
+          <div class="tec-info">
+            <div class="tec-nome">Carlos Augusto</div>
+            <div class="tec-tipo">Elétrica · Encanador</div>
+          </div>
+          <div style="text-align:right">
+            <div class="tec-os" id="os-carlos">0</div>
+            <div class="tec-os-label">OS hoje</div>
+          </div>
+        </div>
+        <div class="tec-item">
+          <div class="tec-avatar av-l">LG</div>
+          <div class="tec-info">
+            <div class="tec-nome">Leandro Goulart</div>
+            <div class="tec-tipo">Linha branca</div>
+          </div>
+          <div style="text-align:right">
+            <div class="tec-os" id="os-leandro" style="color:var(--roxo)">0</div>
+            <div class="tec-os-label">OS hoje</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Por Portal</div>
+        <div class="portal-row">
+          <span class="portal-nome" style="color:var(--notro)">Notro</span>
+          <div class="portal-bar-wrap"><div class="portal-bar" id="bar-notro" style="background:var(--notro);width:0%"></div></div>
+          <span class="portal-count" id="cnt-notro">0</span>
+        </div>
+        <div class="portal-row">
+          <span class="portal-nome" style="color:var(--juvo)">Juvo</span>
+          <div class="portal-bar-wrap"><div class="portal-bar" id="bar-juvo" style="background:var(--juvo);width:0%"></div></div>
+          <span class="portal-count" id="cnt-juvo">0</span>
+        </div>
+        <div class="portal-row">
+          <span class="portal-nome" style="color:var(--aciona)">Aciona Fácil</span>
+          <div class="portal-bar-wrap"><div class="portal-bar" id="bar-aciona" style="background:var(--aciona);width:0%"></div></div>
+          <span class="portal-count" id="cnt-aciona">0</span>
+        </div>
+        <div class="portal-row">
+          <span class="portal-nome" style="color:var(--mondial)">Mondial</span>
+          <div class="portal-bar-wrap"><div class="portal-bar" id="bar-mondial" style="background:var(--mondial);width:0%"></div></div>
+          <span class="portal-count" id="cnt-mondial">0</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-btns">
+    <button class="btt primary" onclick="abrirModal()">+ Nova OS manual</button>
+    <button class="btt" onclick="mostrarAba('historico')">Histórico completo</button>
+    <button class="btt" onclick="exportar()">⬇ Exportar Excel</button>
+  </div>
+</div>
+
+<!-- ABA HISTÓRICO -->
+<div id="aba-historico" style="display:none">
+  <div class="panel">
+    <div class="panel-title">Pesquisa de Ordens de Serviço</div>
+    <div style="margin-bottom:14px">
+      <input id="busca-os" oninput="carregarHistorico()" placeholder="🔍  Buscar por tipo, funcionário, endereço..." 
+        style="width:100%;padding:11px 16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;outline:none">
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:16px">
+      <select id="filtro-portal" onchange="carregarHistorico()" style="background:var(--surface);color:var(--text);border:1px solid var(--border);padding:8px 12px;border-radius:8px;font-family:'Space Grotesk',sans-serif;font-size:13px">
+        <option value="">Todos os portais</option>
+        <option value="NOTRO">Notro</option>
+        <option value="TEMPO SLZ">Juvo</option>
+      </select>
+      <select id="filtro-status" onchange="carregarHistorico()" style="background:var(--surface);color:var(--text);border:1px solid var(--border);padding:8px 12px;border-radius:8px;font-family:'Space Grotesk',sans-serif;font-size:13px">
+        <option value="">Todos os status</option>
+        <option value="ACEITO">Aceito</option>
+        <option value="RECUSADO">Recusado</option>
+      </select>
+    </div>
+    <table style="width:100%;border-collapse:collapse" id="tabela-historico">
+      <thead>
+        <tr style="border-bottom:1px solid var(--border)">
+          <th style="text-align:left;padding:8px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:'Space Mono',monospace">Data</th>
+          <th style="text-align:left;padding:8px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:'Space Mono',monospace">Portal</th>
+          <th style="text-align:left;padding:8px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:'Space Mono',monospace">Tipo</th>
+          <th style="text-align:left;padding:8px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:'Space Mono',monospace">Funcionário</th>
+          <th style="text-align:left;padding:8px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:'Space Mono',monospace">Status</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-historico"><tr><td colspan="5" class="empty">Carregando...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ABA TÉCNICOS -->
+<div id="aba-tecnicos" style="display:none">
+  <div class="grid2">
+    <div class="panel">
+      <div class="panel-title" style="color:var(--azul)">⚡ Carlos Augusto · PTI2314</div>
+      <div style="text-align:center;padding:16px 0">
+        <div style="width:64px;height:64px;border-radius:50%;background:rgba(77,159,255,0.2);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:var(--azul);margin:0 auto 10px">CA</div>
+        <div style="font-size:24px;font-weight:700" id="tec-carlos-total">0</div>
+        <div style="font-size:11px;color:var(--muted);font-family:'Space Mono',monospace">OS total</div>
+      </div>
+      <div id="tec-carlos-lista"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title" style="color:var(--roxo)">🔧 Leandro Goulart · QXM9I81</div>
+      <div style="text-align:center;padding:16px 0">
+        <div style="width:64px;height:64px;border-radius:50%;background:rgba(160,107,255,0.2);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:var(--roxo);margin:0 auto 10px">LG</div>
+        <div style="font-size:24px;font-weight:700" id="tec-leandro-total">0</div>
+        <div style="font-size:11px;color:var(--muted);font-family:'Space Mono',monospace">OS total</div>
+      </div>
+      <div id="tec-leandro-lista"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NOVA OS -->
+<div class="modal-overlay" id="modal-os">
+  <div class="modal">
+    <h2>+ Nova OS Manual</h2>
+    <div class="campo"><label>Portal</label>
+      <select id="nova-portal">
+        <option>NOTRO</option><option>TEMPO SLZ</option><option>ACIONA FACIL</option><option>MONDIAL</option>
+      </select></div>
+    <div class="campo"><label>Tipo de serviço</label>
+      <input id="nova-tipo" placeholder="Ex: Eletricista, Encanador..."></div>
+    <div class="campo"><label>Funcionário</label>
+      <select id="nova-func">
+        <option value="CARLOS AUGUSTO PEREIRA FILHO">Carlos Augusto</option>
+        <option value="LEANDRO GOULART DE JESUS SOUZA">Leandro Goulart</option>
+      </select></div>
+    <div class="campo"><label>Endereço</label>
+      <input id="nova-end" placeholder="Endereço do cliente"></div>
+    <div class="modal-btns">
+      <button class="btt" onclick="fecharModal()">Cancelar</button>
+      <button class="btt primary" onclick="salvarOS()">Salvar OS</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETALHE OS -->
+<div class="modal-overlay" id="modal-detalhe">
+  <div class="modal" style="max-width:560px;max-height:85vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h2 id="det-titulo">Detalhe da OS</h2>
+      <button onclick="fecharDetalhe()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer">✕</button>
+    </div>
+    <!-- DADOS PÚBLICOS -->
+    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;font-family:'Space Mono',monospace">Dados da OS</div>
+    <div id="det-publico" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px"></div>
+    <!-- DADOS INTERNOS -->
+    <div style="background:rgba(255,184,77,0.08);border:1px solid rgba(255,184,77,0.2);border-radius:12px;padding:16px;margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;color:var(--amarelo);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;font-family:'Space Mono',monospace">🔒 Dados Internos — não aparecem no PDF do cliente</div>
+      <div id="det-interno" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"></div>
+    </div>
+    <!-- FOTOS -->
+    <div id="det-fotos" style="display:none">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;font-family:'Space Mono',monospace">Fotos</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+        <div><div style="font-size:11px;color:var(--muted);margin-bottom:6px">Antes</div><img id="foto-antes" style="width:100%;border-radius:10px;border:1px solid var(--border)"></div>
+        <div><div style="font-size:11px;color:var(--muted);margin-bottom:6px">Depois</div><img id="foto-depois" style="width:100%;border-radius:10px;border:1px solid var(--border)"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ABA PEÇAS -->
+<div id="aba-pecas" style="display:none">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <div>
+      <input id="busca-peca" oninput="filtrarPecas()" placeholder="🔍  Buscar peça..." 
+        style="padding:10px 16px;background:var(--card);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;outline:none;width:280px">
+    </div>
+    <button class="btt primary" onclick="abrirModalPeca()" style="width:auto;padding:10px 20px">+ Cadastrar Peça</button>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Estoque de Peças e Materiais</div>
+    <table style="width:100%;border-collapse:collapse" id="tabela-pecas">
+      <thead>
+        <tr style="border-bottom:1px solid var(--border)">
+          <th style="text-align:left;padding:8px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:'Space Mono',monospace">Nome</th>
+          <th style="text-align:left;padding:8px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:'Space Mono',monospace">Marca</th>
+          <th style="text-align:left;padding:8px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:'Space Mono',monospace">Modelo</th>
+          <th style="text-align:left;padding:8px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:'Space Mono',monospace">Tipo</th>
+          <th style="text-align:left;padding:8px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:'Space Mono',monospace">Valor</th>
+          <th style="text-align:left;padding:8px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:'Space Mono',monospace">Estoque</th>
+          <th style="padding:8px"></th>
+        </tr>
+      </thead>
+      <tbody id="tbody-pecas"><tr><td colspan="7" class="empty">Carregando...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- MODAL NOVA PEÇA -->
+<div class="modal-overlay" id="modal-peca">
+  <div class="modal" style="max-width:460px">
+    <h2>+ Cadastrar Peça</h2>
+    <div class="campo"><label>Nome da peça *</label><input id="p-nome" placeholder="Ex: Resistência, Termostato..."></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="campo"><label>Marca</label><input id="p-marca" placeholder="Ex: Brastemp, LG..."></div>
+      <div class="campo"><label>Modelo</label><input id="p-modelo" placeholder="Ex: W10871761..."></div>
+    </div>
+    <div class="campo"><label>Tipo de peça</label>
+      <select id="p-tipo">
+        <option value="">Selecione...</option>
+        <option>Resistência</option><option>Termostato</option><option>Motor</option>
+        <option>Compressor</option><option>Placa eletrônica</option><option>Sensor</option>
+        <option>Capacitor</option><option>Disjuntor</option><option>Fio/Cabo</option>
+        <option>Mangueira</option><option>Bomba d'água</option><option>Válvula</option>
+        <option>Filtro</option><option>Outro</option>
+      </select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="campo"><label>Valor (R$) *</label><input id="p-valor" type="number" step="0.01" placeholder="0,00"></div>
+      <div class="campo"><label>Qtd em estoque</label><input id="p-estoque" type="number" placeholder="0"></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btt" onclick="fecharModalPeca()">Cancelar</button>
+      <button class="btt primary" onclick="cadastrarPeca()">Cadastrar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const COLUNAS = ["DATA","HORA","PORTAL","TIPO SERVIÇO","ENDEREÇO","FUNCIONÁRIO","VEÍCULO","STATUS","OBS"];
+
+function iconeServico(tipo) {
+  const t = (tipo||"").toLowerCase();
+  if (t.includes("eletric")) return {ico:"⚡", cls:"eletrica"};
+  if (t.includes("encanad")||t.includes("hidraul")) return {ico:"🔧", cls:"encanador"};
+  if (t.includes("geladeira")||t.includes("freezer")||t.includes("maquina")||t.includes("ar cond")||t.includes("higieniza")||t.includes("fogao")||t.includes("fogão")||t.includes("microondas")) return {ico:"❄️", cls:"branca"};
+  return {ico:"🔩", cls:"eletrica"};
+}
+
+function badgeStatus(s) {
+  const m = {ACEITO:"badge-aceito",RECUSADO:"badge-recusado","EM ANDAMENTO":"badge-andamento",CONCLUIDO:"badge-concluido"};
+  return m[s] || "badge-aceito";
+}
+
+function portalClass(p) {
+  const m = {NOTRO:"notro","TEMPO SLZ":"juvo","ACIONA FACIL":"aciona",MONDIAL:"mondial"};
+  return m[(p||"").toUpperCase()] || "azul";
+}
+
+async function fetchDados() {
+  try { const r = await fetch("/listar"); return await r.json(); } catch { return {}; }
+}
+
+async function carregarPainel() {
+  const dados = await fetchDados();
+  const hoje = new Date().toLocaleDateString("pt-BR");
+  let total=0, aceitas=0, andamento=0, recusadas=0;
+  let carlos=0, leandro=0;
+  let portais = {NOTRO:0,"TEMPO SLZ":0,"ACIONA FACIL":0,MONDIAL:0};
+  let os_hoje = [];
+
+  for (const [aba, linhas] of Object.entries(dados)) {
+    for (const l of linhas) {
+      if (l.DATA !== hoje) continue;
+      total++;
+      if (l.STATUS==="ACEITO") aceitas++;
+      if (l.STATUS==="RECUSADO") recusadas++;
+      if (l.STATUS==="EM ANDAMENTO") andamento++;
+      if ((l["FUNCIONÁRIO"]||"").includes("CARLOS")) carlos++;
+      if ((l["FUNCIONÁRIO"]||"").includes("LEANDRO")) leandro++;
+      const p = (aba==="TEMPO SLZ") ? "TEMPO SLZ" : (l.PORTAL||aba).toUpperCase();
+      if (portais[p] !== undefined) portais[p]++;
+      os_hoje.push({...l, aba});
+    }
+  }
+
+  document.getElementById("m-hoje").textContent = total;
+  document.getElementById("m-aceitas").textContent = aceitas;
+  document.getElementById("m-andamento").textContent = andamento;
+  document.getElementById("m-recusadas").textContent = recusadas;
+  document.getElementById("os-carlos").textContent = carlos;
+  document.getElementById("os-leandro").textContent = leandro;
+
+  const maxP = Math.max(...Object.values(portais), 1);
+  for (const [p, cnt] of Object.entries(portais)) {
+    const key = p==="TEMPO SLZ"?"juvo": p.toLowerCase().replace(" ","");
+    const el = document.getElementById("cnt-"+key);
+    const bar = document.getElementById("bar-"+key);
+    if (el) el.textContent = cnt;
+    if (bar) bar.style.width = (cnt/maxP*100)+"%";
+  }
+
+  const lista = document.getElementById("lista-os");
+  if (!os_hoje.length) {
+    lista.innerHTML = '<div class="empty">📭 Sem serviços hoje ainda</div>';
+    return;
+  }
+  lista.innerHTML = os_hoje.slice(-8).reverse().map(l => {
+    const {ico,cls} = iconeServico(l["TIPO SERVIÇO"]);
+    const func = (l["FUNCIONÁRIO"]||"—").split(" ").slice(0,2).join(" ");
+    return `<div class="os-item">
+      <div class="os-icon ${cls}">${ico}</div>
+      <div class="os-info">
+        <div class="os-tipo">${l["TIPO SERVIÇO"]||"—"}</div>
+        <div class="os-sub">${l.PORTAL||l.aba} · ${func} · ${l.HORA||""}</div>
+      </div>
+      <span class="os-badge ${badgeStatus(l.STATUS)}">${l.STATUS||""}</span>
+    </div>`;
+  }).join("");
+}
+
+async function carregarHistorico() {
+  const dados = await fetchDados();
+  const filtroPortal = document.getElementById("filtro-portal").value;
+  const filtroStatus = document.getElementById("filtro-status").value;
+  const busca = (document.getElementById("busca-os")?.value||"").toLowerCase();
+  let rows = [];
+  for (const [aba, linhas] of Object.entries(dados)) {
+    if (filtroPortal && aba !== filtroPortal) continue;
+    linhas.forEach(l => {
+      if (filtroStatus && l.STATUS !== filtroStatus) return;
+      if (busca) {
+        const texto = [l["TIPO SERVIÇO"],l["FUNCIONÁRIO"],l["ENDEREÇO"],l.OBS,l.PORTAL].join(" ").toLowerCase();
+        if (!texto.includes(busca)) return;
+      }
+      rows.push({...l, aba});
+    });
+  }
+  rows = rows.reverse();
+  const tbody = document.getElementById("tbody-historico");
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">Nenhum registro encontrado</td></tr>'; return; }
+  tbody.innerHTML = rows.slice(0,100).map(l => {
+    const func = (l["FUNCIONÁRIO"]||"—").split(" ").slice(0,2).join(" ");
+    return `<tr style="border-bottom:1px solid var(--border);cursor:pointer" onclick='abrirDetalheOS(${JSON.stringify(l)})' onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background=''">
+      <td style="padding:10px 8px;font-size:11px;font-family:'Space Mono',monospace;color:var(--muted)">${l.DATA||""}<br>${l.HORA||""}</td>
+      <td style="padding:10px 8px"><span style="color:var(--${portalClass(l.aba)});font-size:12px;font-weight:600">${l.aba}</span></td>
+      <td style="padding:10px 8px;font-size:13px;max-width:180px">${(l["TIPO SERVIÇO"]||"—").substring(0,40)}</td>
+      <td style="padding:10px 8px;font-size:12px;color:var(--muted)">${func}</td>
+      <td style="padding:10px 8px"><span class="os-badge ${badgeStatus(l.STATUS)}">${l.STATUS||""}</span></td>
+    </tr>`;
+  }).join("");
+}
+
+async function carregarTecnicos() {
+  const dados = await fetchDados();
+  let carlos=[], leandro=[];
+  for (const [aba, linhas] of Object.entries(dados)) {
+    for (const l of linhas) {
+      if ((l["FUNCIONÁRIO"]||"").includes("CARLOS")) carlos.push({...l,aba});
+      if ((l["FUNCIONÁRIO"]||"").includes("LEANDRO")) leandro.push({...l,aba});
+    }
+  }
+  document.getElementById("tec-carlos-total").textContent = carlos.length;
+  document.getElementById("tec-leandro-total").textContent = leandro.length;
+
+  function renderTec(lista, elId) {
+    const el = document.getElementById(elId);
+    const porPortal = {};
+    lista.forEach(l => { porPortal[l.aba] = (porPortal[l.aba]||0)+1; });
+    el.innerHTML = Object.entries(porPortal).map(([p,c]) =>
+      `<div class="portal-row"><span class="portal-nome" style="color:var(--${portalClass(p)})">${p}</span><span style="font-size:13px;font-weight:700;font-family:'Space Mono',monospace">${c}</span></div>`
+    ).join("") || '<div class="empty">Nenhum serviço</div>';
+  }
+  renderTec(carlos, "tec-carlos-lista");
+  renderTec(leandro, "tec-leandro-lista");
+}
+
+// ── TABS ──────────────────────────────────
+function mostrarAba(id) {
+  ["hoje","historico","tecnicos"].forEach(a => {
+    document.getElementById("aba-"+a).style.display = a===id?"block":"none";
+  });
+  document.querySelectorAll(".tab").forEach((t,i) => {
+    const ids = ["hoje","historico","tecnicos"];
+    t.classList.toggle("ativa", ids[i]===id);
+  });
+  if (id==="historico") carregarHistorico();
+  if (id==="tecnicos")  carregarTecnicos();
+}
+
+// ── MODAL ────────────────────────────────
+function abrirModal() { document.getElementById("modal-os").classList.add("aberto"); }
+function fecharModal() { document.getElementById("modal-os").classList.remove("aberto"); }
+
+async function salvarOS() {
+  const dados = {
+    portal:       document.getElementById("nova-portal").value,
+    tipo_servico: document.getElementById("nova-tipo").value,
+    funcionario:  document.getElementById("nova-func").value,
+    endereco:     document.getElementById("nova-end").value,
+    status: "ACEITO",
+  };
+  const aba = dados.portal === "TEMPO SLZ" ? "salvar_juvo" : "salvar_notro";
+  await fetch("/"+aba, {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(dados)});
+  fecharModal();
+  carregarPainel();
+}
+
+// ── EXPORTAR ─────────────────────────────
+function exportar() {
+  window.open("/listar");
+}
+
+// ── RELÓGIO ──────────────────────────────
+setInterval(() => {
+  document.getElementById("hora-top").textContent = new Date().toLocaleTimeString("pt-BR");
+}, 1000);
+
+// ── DETALHE OS ───────────────────────────
+let todosLaudos = [];
+
+async function carregarLaudos() {
+  try { const r = await fetch("/api/laudos"); const d = await r.json(); todosLaudos = d.laudos || []; } catch { todosLaudos = []; }
+}
+
+function abrirDetalheOS(os) {
+  const laudo = todosLaudos.find(l => l.os_numero === os.OBS || l.os_numero === (os["TIPO SERVIÇO"]||"").substring(0,20));
+  document.getElementById("det-titulo").textContent = "OS — " + (os["TIPO SERVIÇO"]||"Serviço");
+
+  const pub = [
+    ["Portal", os.PORTAL || os.aba || "—"],
+    ["Data", (os.DATA||"") + " " + (os.HORA||"")],
+    ["Funcionário", (os["FUNCIONÁRIO"]||"—").split(" ").slice(0,2).join(" ")],
+    ["Veículo", os["VEÍCULO"]||"—"],
+    ["Endereço", os["ENDEREÇO"]||"—"],
+    ["Status", os.STATUS||"—"],
+  ];
+  document.getElementById("det-publico").innerHTML = pub.map(([k,v]) =>
+    `<div style="background:var(--surface);border-radius:10px;padding:12px">
+      <div style="font-size:10px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">${k}</div>
+      <div style="font-size:13px;font-weight:600">${v}</div>
+    </div>`).join("");
+
+  let interno = [
+    ["Marca", laudo?.interno?.marca || "—"],
+    ["Modelo", laudo?.interno?.modelo || "—"],
+    ["Peças utilizadas", laudo?.interno?.obs_tecnica?.includes("peça") ? "Ver observações" : "—"],
+    ["Retorno necessário", laudo?.interno?.retorno || "—"],
+    ["Obs. técnicas", laudo?.interno?.obs_tecnica || "—"],
+    ["Problema relatado", laudo?.problema || "—"],
+  ];
+  document.getElementById("det-interno").innerHTML = interno.map(([k,v]) =>
+    `<div style="background:rgba(0,0,0,0.2);border-radius:10px;padding:12px">
+      <div style="font-size:10px;color:var(--amarelo);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">${k}</div>
+      <div style="font-size:13px;font-weight:500">${v}</div>
+    </div>`).join("");
+
+  // Fotos
+  const fotos = laudo?.interno?.fotos;
+  if (fotos?.antes || fotos?.depois) {
+    document.getElementById("det-fotos").style.display = "block";
+    if (fotos.antes)  document.getElementById("foto-antes").src  = fotos.antes;
+    if (fotos.depois) document.getElementById("foto-depois").src = fotos.depois;
+  } else {
+    document.getElementById("det-fotos").style.display = "none";
+  }
+
+  document.getElementById("modal-detalhe").classList.add("aberto");
+}
+
+function fecharDetalhe() { document.getElementById("modal-detalhe").classList.remove("aberto"); }
+
+// ── PEÇAS ─────────────────────────────────
+let todasPecas = [];
+
+async function carregarPecasTab() {
+  try { const r = await fetch("/api/pecas"); const d = await r.json(); todasPecas = d.pecas || []; }
+  catch { todasPecas = []; }
+  renderPecas(todasPecas);
+}
+
+function filtrarPecas() {
+  const q = document.getElementById("busca-peca").value.toLowerCase();
+  renderPecas(todasPecas.filter(p =>
+    (p.nome||"").toLowerCase().includes(q) ||
+    (p.marca||"").toLowerCase().includes(q) ||
+    (p.modelo||"").toLowerCase().includes(q) ||
+    (p.tipo||"").toLowerCase().includes(q)
+  ));
+}
+
+function renderPecas(lista) {
+  const tbody = document.getElementById("tbody-pecas");
+  if (!lista.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">Nenhuma peça cadastrada</td></tr>'; return; }
+  tbody.innerHTML = lista.map(p => `<tr style="border-bottom:1px solid var(--border)">
+    <td style="padding:12px 8px;font-size:14px;font-weight:600">${p.nome||"—"}</td>
+    <td style="padding:12px 8px;font-size:13px;color:var(--muted)">${p.marca||"—"}</td>
+    <td style="padding:12px 8px;font-size:13px;color:var(--muted);font-family:'Space Mono',monospace">${p.modelo||"—"}</td>
+    <td style="padding:12px 8px"><span style="background:rgba(77,159,255,0.15);color:var(--azul);font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px">${p.tipo||"—"}</span></td>
+    <td style="padding:12px 8px;font-size:14px;font-weight:700;color:var(--verde)">R$ ${parseFloat(p.valor||0).toFixed(2)}</td>
+    <td style="padding:12px 8px;font-size:14px;font-weight:600;text-align:center">${p.estoque||0}</td>
+    <td style="padding:12px 8px;text-align:right">
+      <button onclick="removerPeca('${p.id}')" style="background:rgba(255,92,92,0.1);color:var(--vermelho);border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:12px">🗑 Remover</button>
+    </td>
+  </tr>`).join("");
+}
+
+function abrirModalPeca() { document.getElementById("modal-peca").classList.add("aberto"); }
+function fecharModalPeca() { document.getElementById("modal-peca").classList.remove("aberto"); }
+
+async function cadastrarPeca() {
+  const nome = document.getElementById("p-nome").value.trim();
+  const valor = document.getElementById("p-valor").value;
+  if (!nome || !valor) { alert("Informe nome e valor da peça"); return; }
+  await fetch("/api/pecas", {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({
+      nome, marca: document.getElementById("p-marca").value,
+      modelo: document.getElementById("p-modelo").value,
+      tipo: document.getElementById("p-tipo").value,
+      valor, estoque: parseInt(document.getElementById("p-estoque").value)||0
+    })
+  });
+  fecharModalPeca();
+  ["p-nome","p-marca","p-modelo","p-valor","p-estoque"].forEach(id => document.getElementById(id).value="");
+  document.getElementById("p-tipo").value = "";
+  carregarPecasTab();
+}
+
+async function removerPeca(id) {
+  if (!confirm("Remover esta peça?")) return;
+  await fetch("/api/pecas/"+id, {method:"DELETE"});
+  carregarPecasTab();
+}
+
+// ── BUSCA OS ─────────────────────────────
+// já integrada em carregarHistorico via #busca-os
+
+// ── TABS (atualizado) ────────────────────
+function mostrarAba(id) {
+  ["hoje","historico","tecnicos","pecas"].forEach(a => {
+    const el = document.getElementById("aba-"+a);
+    if (el) el.style.display = a===id?"block":"none";
+  });
+  document.querySelectorAll(".tab").forEach((t,i) => {
+    const ids = ["hoje","historico","tecnicos","pecas"];
+    t.classList.toggle("ativa", ids[i]===id);
+  });
+  if (id==="historico") { carregarLaudos(); carregarHistorico(); }
+  if (id==="tecnicos")  carregarTecnicos();
+  if (id==="pecas")     carregarPecasTab();
+}
+
+// ── INIT ─────────────────────────────────
+carregarPainel();
+carregarLaudos();
+setInterval(carregarPainel, 30000);
+
+document.getElementById("modal-os").addEventListener("click", e => {
+  if (e.target === document.getElementById("modal-os")) fecharModal();
+});
+document.getElementById("modal-detalhe").addEventListener("click", e => {
+  if (e.target === document.getElementById("modal-detalhe")) fecharDetalhe();
+});
+document.getElementById("modal-peca").addEventListener("click", e => {
+  if (e.target === document.getElementById("modal-peca")) fecharModalPeca();
+});
+</script>
+</body>
+</html>
