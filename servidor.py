@@ -4,11 +4,11 @@ SISTEMA ELEC — Servidor Cloud (Railway)
 import os, json, threading
 from datetime import datetime
 from pathlib import Path
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 
 BASE = os.path.dirname(os.path.abspath(__file__))
-app  = Flask(__name__, static_folder=BASE)
+app  = Flask(__name__)
 CORS(app)
 
 DATA_DIR = Path(os.environ.get("DATA_DIR", "/data"))
@@ -43,11 +43,21 @@ def enviar_telegram(msg):
 # ── PÁGINAS ───────────────────────────────────
 @app.route("/")
 def index():
-    return send_from_directory(BASE, "index.html")
+    try:
+        path = os.path.join(BASE, "index.html")
+        with open(path, "r", encoding="utf-8") as f:
+            return f.read(), 200, {"Content-Type": "text/html; charset=utf-8"}
+    except Exception as e:
+        return f"Erro: {e} | BASE={BASE}", 500
 
 @app.route("/tecnico")
 def tecnico():
-    return send_from_directory(BASE, "tecnico.html")
+    try:
+        path = os.path.join(BASE, "tecnico.html")
+        with open(path, "r", encoding="utf-8") as f:
+            return f.read(), 200, {"Content-Type": "text/html; charset=utf-8"}
+    except Exception as e:
+        return f"Erro: {e} | BASE={BASE}", 500
 
 # ── API REGISTRAR ────────────────────────────
 @app.route("/api/registrar", methods=["POST"])
