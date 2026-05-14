@@ -45,11 +45,11 @@ def enviar_telegram(msg):
 # ── ROTAS PRINCIPAIS ─────────────────────────
 @app.route("/")
 def index():
-    return send_from_directory("static", "index.html")
+  return send_from_directory(".", "index.html")
 
 @app.route("/tecnico")
 def tecnico():
-    return send_from_directory("static", "tecnico.html")
+   return send_from_directory(".", "tecnico.html")
 
 @app.route("/api/registrar", methods=["POST"])
 def registrar():
