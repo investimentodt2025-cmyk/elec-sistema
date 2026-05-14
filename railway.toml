@@ -1,8 +1,5 @@
-[build]
-builder = "NIXPACKS"
-
 [deploy]
-startCommand = "gunicorn servidor:app --bind 0.0.0.0:$PORT --workers 1"
+startCommand = "gunicorn servidor:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120"
 healthcheckPath = "/api/status"
 restartPolicyType = "ON_FAILURE"
 
