@@ -48,7 +48,7 @@ def index():
         with open(path, "r", encoding="utf-8") as f:
             return f.read(), 200, {"Content-Type": "text/html; charset=utf-8"}
     except Exception as e:
-        return f"Erro: {e} | BASE={BASE}", 500
+        return f"Erro ao abrir index.html: {e} | BASE={BASE}", 500
 
 @app.route("/tecnico")
 def tecnico():
@@ -57,43 +57,48 @@ def tecnico():
         with open(path, "r", encoding="utf-8") as f:
             return f.read(), 200, {"Content-Type": "text/html; charset=utf-8"}
     except Exception as e:
-        return f"Erro: {e} | BASE={BASE}", 500
+        return f"Erro ao abrir tecnico.html: {e} | BASE={BASE}", 500
 
-# ── API REGISTRAR ────────────────────────────
+# ── DEBUG ─────────────────────────────────────
+@app.route("/debug")
+def debug():
+    try:
+        files = os.listdir(BASE)
+        return jsonify({"BASE": BASE, "files": sorted(files)})
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
+
+# ── API REGISTRAR ─────────────────────────────
 @app.route("/api/registrar", methods=["POST"])
 def registrar():
     try:
         d = request.get_json()
         registros = ler(REGISTROS_FILE)
         agora = datetime.now()
-
         tipo_raw = d.get("tipo_servico", d.get("tipo", ""))
         if "→" in tipo_raw: tipo_raw = tipo_raw.split("→")[0].strip()
         if "\n" in tipo_raw: tipo_raw = tipo_raw.split("\n")[0].strip()
-
         registro = {
-            "id":          str(agora.timestamp()).replace(".",""),
-            "data":        agora.strftime("%d/%m/%Y"),
-            "hora":        agora.strftime("%H:%M:%S"),
-            "portal":      d.get("portal",""),
+            "id":           str(agora.timestamp()).replace(".",""),
+            "data":         agora.strftime("%d/%m/%Y"),
+            "hora":         agora.strftime("%H:%M:%S"),
+            "portal":       d.get("portal",""),
             "tipo_servico": tipo_raw,
-            "endereco":    d.get("endereco",""),
-            "funcionario": d.get("funcionario",""),
-            "veiculo":     d.get("veiculo",""),
-            "status":      d.get("status","ACEITO"),
-            "obs":         d.get("obs",""),
-            "cliente":     d.get("cliente",""),
-            "numero":      d.get("numero","") or d.get("obs",""),
+            "endereco":     d.get("endereco",""),
+            "funcionario":  d.get("funcionario",""),
+            "veiculo":      d.get("veiculo",""),
+            "status":       d.get("status","ACEITO"),
+            "obs":          d.get("obs",""),
+            "cliente":      d.get("cliente",""),
+            "numero":       d.get("numero","") or d.get("obs",""),
         }
         registros.append(registro)
         salvar(REGISTROS_FILE, registros)
         print(f"  [+] {registro['portal']} | {tipo_raw} | {registro['funcionario']} | {registro['cliente']}")
-
-        status    = registro["status"]
-        emoji     = "✅" if status == "ACEITO" else "❌"
-        cliente   = registro.get("cliente","") or "—"
-        func      = (registro["funcionario"].split()[0].title()
-                     if registro["funcionario"] else "—")
+        status  = registro["status"]
+        emoji   = "✅" if status == "ACEITO" else "❌"
+        cliente = registro.get("cliente","") or "—"
+        func    = registro["funcionario"].split()[0].title() if registro["funcionario"] else "—"
         msg = (f"{emoji} {registro['portal']} — {status}\n"
                f"Tipo: {tipo_raw}\n"
                f"Cliente: {cliente}\n"
@@ -103,7 +108,6 @@ def registrar():
         threading.Thread(target=enviar_telegram, args=(msg,), daemon=True).start()
         return jsonify({"ok": True})
     except Exception as e:
-        print(f"  ERRO registrar: {e}")
         return jsonify({"ok": False, "erro": str(e)}), 500
 
 @app.route("/api/nova_os", methods=["POST","OPTIONS"])
@@ -130,16 +134,16 @@ def listar_route():
             aba = r.get("portal","NOTRO")
             if aba not in res: res[aba] = []
             res[aba].append({
-                "DATA":        r.get("data",""),
-                "HORA":        r.get("hora",""),
-                "PORTAL":      r.get("portal",""),
-                "TIPO SERVIÇO":r.get("tipo_servico",""),
-                "ENDEREÇO":    r.get("endereco",""),
-                "FUNCIONÁRIO": r.get("funcionario",""),
-                "VEÍCULO":     r.get("veiculo",""),
-                "STATUS":      r.get("status",""),
-                "OBS":         r.get("obs",""),
-                "CLIENTE":     r.get("cliente",""),
+                "DATA":         r.get("data",""),
+                "HORA":         r.get("hora",""),
+                "PORTAL":       r.get("portal",""),
+                "TIPO SERVIÇO": r.get("tipo_servico",""),
+                "ENDEREÇO":     r.get("endereco",""),
+                "FUNCIONÁRIO":  r.get("funcionario",""),
+                "VEÍCULO":      r.get("veiculo",""),
+                "STATUS":       r.get("status",""),
+                "OBS":          r.get("obs",""),
+                "CLIENTE":      r.get("cliente",""),
             })
         return jsonify(res)
     except Exception as e:
@@ -149,8 +153,8 @@ def listar_route():
 @app.route("/api/os_tecnico")
 def os_tecnico():
     try:
-        tec   = request.args.get("tecnico","").upper()
-        hoje  = datetime.now().strftime("%d/%m/%Y")
+        tec  = request.args.get("tecnico","").upper()
+        hoje = datetime.now().strftime("%d/%m/%Y")
         lista = []
         for i, r in enumerate(ler(REGISTROS_FILE)):
             func = r.get("funcionario","").upper()
@@ -189,7 +193,7 @@ def atualizar_os():
 @app.route("/api/laudo", methods=["POST"])
 def salvar_laudo():
     try:
-        d      = request.get_json()
+        d = request.get_json()
         laudos = ler(LAUDOS_FILE)
         laudos.append({**d, "salvo_em": datetime.now().isoformat()})
         salvar(LAUDOS_FILE, laudos)
@@ -215,9 +219,9 @@ def listar_pecas():
 @app.route("/api/pecas", methods=["POST"])
 def adicionar_peca():
     try:
-        d     = request.get_json()
+        d = request.get_json()
         pecas = ler(PECAS_FILE)
-        peca  = {
+        peca = {
             "id":      str(datetime.now().timestamp()).replace(".",""),
             "nome":    d.get("nome",""),
             "marca":   d.get("marca",""),
