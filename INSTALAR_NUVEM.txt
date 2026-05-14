@@ -1,0 +1,76 @@
+═══════════════════════════════════════════════════
+  SISTEMA ELEC — INSTALAÇÃO NA NUVEM (RAILWAY)
+═══════════════════════════════════════════════════
+
+PASSO 1 — Criar conta no GitHub (gratuito)
+─────────────────────────────────────────────
+1. Acesse: https://github.com
+2. Clique em "Sign up"
+3. Crie sua conta
+
+PASSO 2 — Criar repositório no GitHub
+─────────────────────────────────────────────
+1. Clique em "New repository"
+2. Nome: elec-sistema
+3. Marque "Private"
+4. Clique "Create repository"
+5. Clique "uploading an existing file"
+6. Arraste TODOS os arquivos desta pasta (exceto este .txt)
+7. Clique "Commit changes"
+
+PASSO 3 — Criar conta no Railway (gratuito)
+─────────────────────────────────────────────
+1. Acesse: https://railway.app
+2. Clique "Login with GitHub"
+3. Autorize o Railway
+
+PASSO 4 — Criar o projeto no Railway
+─────────────────────────────────────────────
+1. Clique "New Project"
+2. Selecione "Deploy from GitHub repo"
+3. Selecione "elec-sistema"
+4. Railway vai detectar e iniciar o deploy
+
+PASSO 5 — Adicionar volume (para salvar dados)
+─────────────────────────────────────────────
+1. No projeto Railway, clique no serviço
+2. Clique na aba "Volumes"
+3. Clique "Add Volume"
+4. Mount path: /data
+5. Clique "Add"
+
+PASSO 6 — Pegar a URL do sistema
+─────────────────────────────────────────────
+1. Clique na aba "Settings"
+2. Em "Networking" clique "Generate Domain"
+3. Vai aparecer algo como: elec-sistema.railway.app
+4. COPIE ESSA URL!
+
+PASSO 7 — Atualizar o agente local
+─────────────────────────────────────────────
+1. Abra o arquivo agente_notro_local.py no Bloco de Notas
+2. Troque: https://SEU-SISTEMA.railway.app
+   Por: https://elec-sistema.railway.app (sua URL)
+3. Salve o arquivo
+
+PASSO 8 — Atualizar a extensão Juvo
+─────────────────────────────────────────────
+No arquivo agente.js da extensão, troque:
+  fetch("http://localhost:5000/api/nova_os"
+Por:
+  fetch("https://elec-sistema.railway.app/api/nova_os"
+
+Reinstale a extensão no Chrome.
+
+PASSO 9 — Rodar o agente local (1 janela só)
+─────────────────────────────────────────────
+cd C:\agente_servicos
+python agente_notro_local.py
+
+═══════════════════════════════════════════════════
+  PRONTO! Sistema na nuvem 24h!
+  
+  Painel: https://elec-sistema.railway.app
+  Técnicos: https://elec-sistema.railway.app/tecnico
+  1 janela local: só o agente Notro
+═══════════════════════════════════════════════════

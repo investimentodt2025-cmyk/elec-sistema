@@ -1,0 +1,222 @@
+"""
+SISTEMA ELEC — Servidor Cloud (Railway)
+Sem Playwright — só Flask + banco de dados
+"""
+import os, json, threading
+from datetime import datetime
+from pathlib import Path
+from flask import Flask, request, jsonify, send_from_directory
+from flask_cors import CORS
+
+app = Flask(__name__, static_folder="static")
+CORS(app)
+
+# Dados ficam em /data no Railway (volume persistente) ou pasta local
+DATA_DIR = Path(os.environ.get("DATA_DIR", "/data"))
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+REGISTROS_FILE = DATA_DIR / "registros.json"
+PECAS_FILE     = DATA_DIR / "pecas.json"
+LAUDOS_FILE    = DATA_DIR / "laudos.json"
+
+TELEGRAM_TOKEN   = os.environ.get("TELEGRAM_TOKEN", "8647040791:AAGq1YP0BLSlscZ0hKqN68LvHaHPoFvbLns")
+TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "8704528010")
+
+# ── HELPERS ──────────────────────────────────
+def ler(path):
+    try:
+        if path.exists():
+            return json.loads(path.read_text(encoding="utf-8"))
+    except: pass
+    return []
+
+def salvar(path, data):
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+def enviar_telegram(msg):
+    try:
+        import urllib.request as u
+        payload = json.dumps({"chat_id": TELEGRAM_CHAT_ID, "text": msg}).encode()
+        req = u.Request(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
+                        data=payload, headers={"Content-Type":"application/json"})
+        u.urlopen(req, timeout=10)
+    except: pass
+
+# ── ROTAS PRINCIPAIS ─────────────────────────
+@app.route("/")
+def index():
+    return send_from_directory("static", "index.html")
+
+@app.route("/tecnico")
+def tecnico():
+    return send_from_directory("static", "tecnico.html")
+
+@app.route("/api/registrar", methods=["POST"])
+def registrar():
+    """Recebe serviços do agente Notro local e da extensão Juvo"""
+    try:
+        d = request.get_json()
+        registros = ler(REGISTROS_FILE)
+        agora = datetime.now()
+        registro = {
+            "id":          str(agora.timestamp()).replace(".",""),
+            "data":        agora.strftime("%d/%m/%Y"),
+            "hora":        agora.strftime("%H:%M:%S"),
+            "portal":      d.get("portal",""),
+            "tipo_servico":d.get("tipo_servico",""),
+            "endereco":    d.get("endereco",""),
+            "funcionario": d.get("funcionario",""),
+            "veiculo":     d.get("veiculo",""),
+            "status":      d.get("status","ACEITO"),
+            "obs":         d.get("obs",""),
+            "cliente":     d.get("cliente",""),
+        }
+        registros.append(registro)
+        salvar(REGISTROS_FILE, registros)
+        print(f"  [+] {registro['portal']} | {registro['tipo_servico']} | {registro['funcionario']}")
+
+        # Telegram
+        status = registro["status"]
+        emoji  = "✅" if status == "ACEITO" else "❌"
+        msg = (f"{emoji} {registro['portal']} — {status}\n"
+               f"Tipo: {registro['tipo_servico']}\n"
+               f"Funcionário: {registro['funcionario']}\n"
+               f"Hora: {registro['hora']}")
+        threading.Thread(target=enviar_telegram, args=(msg,), daemon=True).start()
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "erro": str(e)}), 500
+
+@app.route("/api/nova_os", methods=["POST","OPTIONS"])
+def nova_os():
+    if request.method == "OPTIONS":
+        return jsonify({"ok": True})
+    return registrar()
+
+@app.route("/salvar_notro", methods=["POST"])
+def salvar_notro():
+    return registrar()
+
+@app.route("/salvar_juvo", methods=["POST"])
+def salvar_juvo():
+    return registrar()
+
+@app.route("/listar")
+def listar():
+    try:
+        registros = ler(REGISTROS_FILE)
+        # Agrupa por portal
+        res = {"NOTRO":[], "TEMPO SLZ":[], "ACIONA FACIL":[], "MONDIAL":[]}
+        for r in registros:
+            aba = r.get("portal","NOTRO")
+            if aba not in res: res[aba] = []
+            res[aba].append({
+                "DATA": r.get("data",""), "HORA": r.get("hora",""),
+                "PORTAL": r.get("portal",""), "TIPO SERVIÇO": r.get("tipo_servico",""),
+                "ENDEREÇO": r.get("endereco",""), "FUNCIONÁRIO": r.get("funcionario",""),
+                "VEÍCULO": r.get("veiculo",""), "STATUS": r.get("status",""),
+                "OBS": r.get("obs",""),
+            })
+        return jsonify(res)
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
+
+@app.route("/api/os_tecnico")
+def os_tecnico():
+    try:
+        tecnico = request.args.get("tecnico","").upper()
+        registros = ler(REGISTROS_FILE)
+        os_lista = []
+        for i, r in enumerate(registros):
+            func = r.get("funcionario","").upper()
+            if tecnico and tecnico not in func: continue
+            if r.get("status") == "ACEITO":
+                os_lista.append({
+                    "id": r.get("id", str(i)),
+                    "numero": r.get("obs","") or f"OS-{i+1}",
+                    "portal": r.get("portal",""),
+                    "tipo_servico": r.get("tipo_servico",""),
+                    "endereco": r.get("endereco",""),
+                    "cliente": r.get("cliente",""),
+                    "status": "NOVA",
+                    "hora": r.get("hora",""),
+                    "funcionario": r.get("funcionario",""),
+                    "veiculo": r.get("veiculo",""),
+                })
+        return jsonify({"ok": True, "os": os_lista})
+    except Exception as e:
+        return jsonify({"ok": False, "erro": str(e), "os": []}), 500
+
+@app.route("/api/atualizar_os", methods=["POST"])
+def atualizar_os():
+    try:
+        d = request.get_json()
+        print(f"  [OS] {d.get('id')} → {d.get('status')}")
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "erro": str(e)}), 500
+
+@app.route("/api/laudo", methods=["POST"])
+def salvar_laudo():
+    try:
+        d = request.get_json()
+        laudos = ler(LAUDOS_FILE)
+        laudos.append({**d, "salvo_em": datetime.now().isoformat()})
+        salvar(LAUDOS_FILE, laudos)
+        msg = (f"✅ SERVIÇO FINALIZADO\n"
+               f"OS: {d.get('os_numero','')}\n"
+               f"Técnico: {d.get('tecnico','')}\n"
+               f"Cliente: {d.get('nome_cliente','')}\n"
+               f"Resolvido: {d.get('resolvido','')}")
+        threading.Thread(target=enviar_telegram, args=(msg,), daemon=True).start()
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "erro": str(e)}), 500
+
+@app.route("/api/laudos")
+def listar_laudos():
+    return jsonify({"ok": True, "laudos": ler(LAUDOS_FILE)})
+
+@app.route("/api/pecas", methods=["GET"])
+def listar_pecas():
+    return jsonify({"ok": True, "pecas": ler(PECAS_FILE)})
+
+@app.route("/api/pecas", methods=["POST"])
+def adicionar_peca():
+    try:
+        d = request.get_json()
+        pecas = ler(PECAS_FILE)
+        peca = {
+            "id": str(datetime.now().timestamp()).replace(".",""),
+            "nome":    d.get("nome",""),
+            "marca":   d.get("marca",""),
+            "modelo":  d.get("modelo",""),
+            "tipo":    d.get("tipo",""),
+            "valor":   d.get("valor",""),
+            "estoque": d.get("estoque",0),
+            "criado":  datetime.now().strftime("%d/%m/%Y %H:%M"),
+        }
+        pecas.append(peca)
+        salvar(PECAS_FILE, pecas)
+        return jsonify({"ok": True, "peca": peca})
+    except Exception as e:
+        return jsonify({"ok": False, "erro": str(e)}), 500
+
+@app.route("/api/pecas/<id>", methods=["DELETE"])
+def remover_peca(id):
+    try:
+        pecas = [p for p in ler(PECAS_FILE) if p["id"] != id]
+        salvar(PECAS_FILE, pecas)
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "erro": str(e)}), 500
+
+@app.route("/api/status")
+def status():
+    return jsonify({"ok": True, "registros": len(ler(REGISTROS_FILE))})
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    print(f"⚡ SISTEMA ELEC — Cloud")
+    print(f"   Rodando na porta {port}")
+    app.run(host="0.0.0.0", port=port, debug=False)
