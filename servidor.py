@@ -8,7 +8,7 @@ from pathlib import Path
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
-app = Flask(__name__, static_folder=".")
+app = Flask(__name__, static_folder="static")
 CORS(app)
 
 # Dados ficam em /data no Railway (volume persistente) ou pasta local
@@ -45,11 +45,11 @@ def enviar_telegram(msg):
 # ── ROTAS PRINCIPAIS ─────────────────────────
 @app.route("/")
 def index():
-    return send_from_directory(".", "index.html")
+    return send_from_directory("static", "index.html")
 
 @app.route("/tecnico")
 def tecnico():
-    return send_from_directory(".", "tecnico.html")
+    return send_from_directory("static", "tecnico.html")
 
 @app.route("/api/registrar", methods=["POST"])
 def registrar():
@@ -78,9 +78,15 @@ def registrar():
         # Telegram
         status = registro["status"]
         emoji  = "✅" if status == "ACEITO" else "❌"
+        tipo_msg = registro["tipo_servico"]
+        if "→" in tipo_msg: tipo_msg = tipo_msg.split("→")[0].strip()
+        cliente_msg = registro.get("cliente","") or "—"
+        func_curto = registro["funcionario"].split()[0].title() if registro["funcionario"] else "—"
         msg = (f"{emoji} {registro['portal']} — {status}\n"
-               f"Tipo: {registro['tipo_servico']}\n"
-               f"Funcionário: {registro['funcionario']}\n"
+               f"Tipo: {tipo_msg}\n"
+               f"Cliente: {cliente_msg}\n"
+               f"Funcionário: {func_curto}\n"
+               f"Veículo: {registro['veiculo']}\n"
                f"Hora: {registro['hora']}")
         threading.Thread(target=enviar_telegram, args=(msg,), daemon=True).start()
         return jsonify({"ok": True})
@@ -127,22 +133,28 @@ def os_tecnico():
         tecnico = request.args.get("tecnico","").upper()
         registros = ler(REGISTROS_FILE)
         os_lista = []
+        hoje = datetime.now().strftime("%d/%m/%Y")
         for i, r in enumerate(registros):
             func = r.get("funcionario","").upper()
             if tecnico and tecnico not in func: continue
-            if r.get("status") == "ACEITO":
-                os_lista.append({
-                    "id": r.get("id", str(i)),
-                    "numero": r.get("obs","") or f"OS-{i+1}",
-                    "portal": r.get("portal",""),
-                    "tipo_servico": r.get("tipo_servico",""),
-                    "endereco": r.get("endereco",""),
-                    "cliente": r.get("cliente",""),
-                    "status": "NOVA",
-                    "hora": r.get("hora",""),
-                    "funcionario": r.get("funcionario",""),
-                    "veiculo": r.get("veiculo",""),
-                })
+            if r.get("status") not in ["ACEITO","EM ANDAMENTO"]: continue
+            # Só mostra OS de hoje
+            if r.get("data","") != hoje: continue
+            tipo = r.get("tipo_servico","")
+            if "→" in tipo: tipo = tipo.split("→")[0].strip()
+            if not tipo or len(tipo) < 3: tipo = "Serviço"
+            os_lista.append({
+                "id":          r.get("id", str(i)),
+                "numero":      r.get("numero","") or r.get("obs","") or f"OS-{i+1}",
+                "portal":      r.get("portal",""),
+                "tipo_servico": tipo,
+                "endereco":    r.get("endereco",""),
+                "cliente":     r.get("cliente",""),
+                "status":      "NOVA" if r.get("status")=="ACEITO" else "DESLOCAMENTO",
+                "hora":        r.get("hora",""),
+                "funcionario": r.get("funcionario",""),
+                "veiculo":     r.get("veiculo",""),
+            })
         return jsonify({"ok": True, "os": os_lista})
     except Exception as e:
         return jsonify({"ok": False, "erro": str(e), "os": []}), 500
