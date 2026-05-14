@@ -8,7 +8,7 @@ from pathlib import Path
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
-app = Flask(__name__, static_folder="static")
+app = Flask(__name__, static_folder=".")
 CORS(app)
 
 # Dados ficam em /data no Railway (volume persistente) ou pasta local
@@ -45,11 +45,11 @@ def enviar_telegram(msg):
 # ── ROTAS PRINCIPAIS ─────────────────────────
 @app.route("/")
 def index():
-    return send_from_directory("static", "index.html")
+    return send_from_directory(".", "index.html")
 
 @app.route("/tecnico")
 def tecnico():
-    return send_from_directory("static", "tecnico.html")
+    return send_from_directory(".", "tecnico.html")
 
 @app.route("/api/registrar", methods=["POST"])
 def registrar():
